@@ -1,0 +1,37 @@
+KINGSWOOD HOTEL PMS - START HERE
+
+1. Install the .NET 10 SDK.
+2. Open this folder in VS Code.
+3. Open Terminal > New Terminal.
+4. Run:
+       dotnet restore
+       dotnet build
+       dotnet run
+5. Open:
+       http://localhost:5050
+
+FIRST SECURITY SETUP
+- The first screen asks you to create the administrator account.
+- There is no default username or password.
+- Use at least 8 password characters with a letter and a number.
+
+SEPARATE LOGINS
+- Sign in as Admin.
+- Open User Accounts.
+- Create Reception, Restaurant and Housekeeping accounts.
+- Each new user must change the temporary password after first login.
+
+RESTAURANT ROOM BILL
+- POS > Charge to Room > select checked-in booking.
+- Send the order.
+- Kitchen Live > mark the order Served.
+- The order total is automatically added to the guest room bill.
+
+DATABASE
+- hotel.db is created automatically.
+- Do not delete hotel.db when it contains real hotel data.
+
+SAME WI-FI
+       dotnet run --urls "http://0.0.0.0:5050"
+
+Then open http://SERVER-PC-IP:5050 from other devices.

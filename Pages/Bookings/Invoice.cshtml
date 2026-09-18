@@ -1,0 +1,644 @@
+@page "{id:int}"
+@model HotelBookingSystem.Pages.Bookings.InvoiceModel
+@{
+    Layout = null;
+
+    var nights = Math.Max(1, (Model.Booking.CheckOut.Date - Model.Booking.CheckIn.Date).Days);
+    var rooms = Model.Booking.BookingRooms
+        .Where(br => br.Room != null)
+        .Select(br => br.Room!)
+        .OrderBy(r => r.RoomNumber)
+        .ToList();
+
+    var roomCount = Math.Max(1, rooms.Count);
+    var roomNightQty = Math.Max(1, roomCount * nights);
+    var roomRate = roomNightQty > 0 ? Model.Booking.RoomCharge / roomNightQty : Model.Booking.RoomCharge;
+
+    var subtotal = Model.Booking.RoomCharge
+        + Model.Booking.SeasonalChargeAmount
+        + Model.Booking.RestaurantBill
+        + Model.Booking.BarBill
+        + Model.Booking.LaundryBill;
+
+    var balanceDue = Model.Booking.BalanceDue;
+    var cashSelected = Model.Booking.PaymentMethod == "Cash" ? "selected" : string.Empty;
+    var cardSelected = Model.Booking.PaymentMethod == "Credit Card" ? "selected" : string.Empty;
+    var bankSelected = Model.Booking.PaymentMethod == "Bank Transfer" ? "selected" : string.Empty;
+    var onlineSelected = Model.Booking.PaymentMethod == "Online Payment" ? "selected" : string.Empty;
+
+    var roomTypes = string.Join(", ", rooms
+        .Select(r => r.RoomType)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct());
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice @Model.Booking.BookingNo</title>
+    <style>
+        @@page {
+            size: A4 portrait;
+            margin: 6mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #101828;
+            background: #e9edf2;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        body {
+            padding: 14px;
+        }
+
+        .no-print {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            border: 0;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 0 3px;
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .btn-primary { background: #0b1f3a; color: #fff; }
+        .btn-warning { background: #c99525; color: #fff; }
+        .btn-secondary { background: #667085; color: #fff; }
+
+        .invoice-sheet {
+            width: 198mm;
+            min-height: 285mm;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #cfd6df;
+            padding: 7mm 7.5mm 5mm;
+            box-shadow: 0 5px 20px rgba(0,0,0,.10);
+        }
+
+        .top-header {
+            display: grid;
+            grid-template-columns: 54px 1fr 165px;
+            gap: 10px;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #c8ced7;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+
+        .hotel-name {
+            color: #0b1f3a;
+            font-size: 17px;
+            line-height: 1.05;
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .hotel-contact {
+            color: #566273;
+            font-size: 7.6px;
+            line-height: 1.45;
+        }
+
+        .invoice-heading {
+            text-align: right;
+        }
+
+        .invoice-title {
+            color: #c99525;
+            font-size: 24px;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: .12em;
+            margin-bottom: 6px;
+        }
+
+        .meta-table {
+            margin-left: auto;
+            border-collapse: collapse;
+            font-size: 8px;
+        }
+
+        .meta-table td {
+            padding: 1px 0 1px 7px;
+            white-space: nowrap;
+        }
+
+        .meta-table td:first-child {
+            font-weight: 700;
+            color: #4d5969;
+        }
+
+        .meta-table td:last-child {
+            font-weight: 800;
+            color: #0b1f3a;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 9px;
+        }
+
+        .detail-card {
+            border: 1px solid #ccd4de;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .detail-title {
+            background: #0b1f3a;
+            color: white;
+            font-size: 8.4px;
+            font-weight: 900;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            padding: 4px 7px;
+        }
+
+        .detail-body {
+            padding: 6px 7px;
+        }
+
+        .detail-row {
+            display: grid;
+            grid-template-columns: 72px 1fr;
+            gap: 5px;
+            padding: 1.5px 0;
+        }
+
+        .detail-label {
+            color: #475467;
+        }
+
+        .detail-value {
+            font-weight: 800;
+            color: #101828;
+            overflow-wrap: anywhere;
+        }
+
+        .section-label {
+            color: #0b1f3a;
+            font-size: 8.7px;
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin: 10px 0 4px;
+        }
+
+        table.charges {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .charges th,
+        .charges td {
+            border: 1px solid #bfc8d4;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+
+        .charges th {
+            background: #0b1f3a;
+            color: #fff;
+            font-size: 7.8px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .charges td {
+            font-size: 8.4px;
+        }
+
+        .charges tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .desc-col { width: 49%; }
+        .qty-col { width: 10%; text-align: center; }
+        .rate-col { width: 20%; text-align: right; }
+        .amount-col { width: 21%; text-align: right; }
+
+        .small-note {
+            display: block;
+            color: #667085;
+            font-size: 7px;
+            margin-top: 1px;
+        }
+
+        .money {
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 49%;
+            gap: 10px;
+            align-items: start;
+            margin-top: 8px;
+        }
+
+        .payment-box,
+        .summary-box {
+            border: 1px solid #c8d0da;
+            border-radius: 4px;
+            overflow: hidden;
+            min-height: 109px;
+        }
+
+        .box-title {
+            background: #0b1f3a;
+            color: #fff;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            padding: 4px 7px;
+        }
+
+        .box-title.gold {
+            background: #c99525;
+        }
+
+        .payment-body {
+            padding: 6px 8px;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px 8px;
+            margin-bottom: 6px;
+        }
+
+        .pay-option {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            font-size: 7.8px;
+        }
+
+        .check-box {
+            width: 8px;
+            height: 8px;
+            border: 1px solid #3b4758;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            font-weight: 900;
+        }
+
+        .check-box.selected::after {
+            content: "✓";
+        }
+
+        .payment-line {
+            padding-top: 3px;
+            font-size: 8px;
+        }
+
+        .payment-line strong {
+            color: #0b1f3a;
+        }
+
+        .summary-body {
+            padding: 5px 7px 0;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 2px 0;
+            font-size: 8px;
+        }
+
+        .summary-row span:first-child {
+            color: #4d5969;
+        }
+
+        .summary-row strong {
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .summary-divider {
+            border-top: 1px solid #c6ced9;
+            margin: 4px 0 2px;
+        }
+
+        .grand-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0b1f3a;
+            color: #fff;
+            margin: 5px -7px 0;
+            padding: 6px 7px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .advance-row {
+            color: #8a6514;
+            font-weight: 800;
+        }
+
+        .balance-due {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #c99525;
+            color: #fff;
+            margin: 0 -7px;
+            padding: 5px 7px;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .remarks {
+            border-left: 2px solid #c99525;
+            margin-top: 8px;
+            padding: 4px 7px;
+            min-height: 23px;
+            font-size: 8px;
+        }
+
+        .thank-you {
+            text-align: center;
+            color: #0b1f3a;
+            font-size: 8.5px;
+            font-weight: 900;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            margin-top: 14px;
+        }
+
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 70px;
+            margin-top: 15px;
+            padding: 0 35px;
+        }
+
+        .signature {
+            text-align: center;
+            font-size: 7px;
+            color: #475467;
+        }
+
+        .signature-line {
+            border-top: 1px solid #344054;
+            margin-bottom: 3px;
+        }
+
+        .footer {
+            border-top: 1px solid #cfd6df;
+            margin-top: 10px;
+            padding-top: 4px;
+            text-align: center;
+            color: #667085;
+            font-size: 6.7px;
+        }
+
+        @@media print {
+            html, body {
+                background: #fff;
+                width: auto;
+                height: auto;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .invoice-sheet {
+                width: 100%;
+                min-height: 0;
+                margin: 0;
+                padding: 0;
+                border: 0;
+                box-shadow: none;
+            }
+
+            .detail-card,
+            .charges,
+            .bottom-grid,
+            .payment-box,
+            .summary-box,
+            .signatures {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Print Invoice</button>
+    @if (Model.Booking.Status != BookingStatuses.CheckedOut &&
+         Model.Booking.Status != BookingStatuses.Cancelled)
+    {
+        <a href="/Bookings/Edit/@Model.Booking.Id" class="btn btn-warning">Admin Edit</a>
+    }
+    <a href="/Bookings" class="btn btn-secondary">Back</a>
+</div>
+
+<main class="invoice-sheet">
+    <header class="top-header">
+        <div>
+            <img src="/images/kingswood-logo.png" alt="Kingswood Tea Factory Hotel" class="logo" />
+        </div>
+
+        <div>
+            <div class="hotel-name">Kingswood Tea<br />Factory Hotel</div>
+            <div class="hotel-contact">
+                Nuwara Eliya Road, Ramboda, Sri Lanka<br />
+                Tel: +94 52 2 200 200 &nbsp; | &nbsp; Mobile: +94 77 4 455 407<br />
+                Email: info@kingswoodtea.lk &nbsp; | &nbsp; Web: www.kingswoodtea.lk
+            </div>
+        </div>
+
+        <div class="invoice-heading">
+            <div class="invoice-title">INVOICE</div>
+            <table class="meta-table">
+                <tr><td>Invoice No:</td><td>INV-@Model.Booking.Id.ToString("00000")</td></tr>
+                <tr><td>Booking No:</td><td>@Model.Booking.BookingNo</td></tr>
+                <tr><td>Date:</td><td>@DateTime.Now.ToString("dd MMM yyyy")</td></tr>
+            </table>
+        </div>
+    </header>
+
+    <section class="details-grid">
+        <div class="detail-card">
+            <div class="detail-title">Guest Details</div>
+            <div class="detail-body">
+                <div class="detail-row"><div class="detail-label">Guest Name</div><div class="detail-value">@(Model.Booking.Customer?.FullName ?? "-")</div></div>
+                @if (!string.IsNullOrWhiteSpace(Model.Booking.Customer?.PassportNo))
+                {
+                    <div class="detail-row"><div class="detail-label">Passport</div><div class="detail-value">@Model.Booking.Customer.PassportNo</div></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Booking.Customer?.NicNo))
+                {
+                    <div class="detail-row"><div class="detail-label">NIC</div><div class="detail-value">@Model.Booking.Customer.NicNo</div></div>
+                }
+                <div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">@(Model.Booking.Customer?.Phone ?? "-")</div></div>
+                <div class="detail-row"><div class="detail-label">Country</div><div class="detail-value">@(Model.Booking.Customer?.Country ?? "-")</div></div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-title">Stay Details</div>
+            <div class="detail-body">
+                <div class="detail-row"><div class="detail-label">Rooms</div><div class="detail-value">@(rooms.Count > 0 ? string.Join(", ", rooms.Select(r => r.RoomNumber)) : "-")</div></div>
+                <div class="detail-row"><div class="detail-label">Room Type</div><div class="detail-value">@(string.IsNullOrWhiteSpace(roomTypes) ? "-" : roomTypes)</div></div>
+                <div class="detail-row"><div class="detail-label">Meal Plan</div><div class="detail-value">@Model.Booking.MealPlan</div></div>
+                <div class="detail-row"><div class="detail-label">Check-In</div><div class="detail-value">@Model.Booking.CheckIn.ToString("dd MMM yyyy HH:mm")</div></div>
+                <div class="detail-row"><div class="detail-label">Check-Out</div><div class="detail-value">@Model.Booking.CheckOut.ToString("dd MMM yyyy HH:mm")</div></div>
+                <div class="detail-row"><div class="detail-label">Nights</div><div class="detail-value">@nights</div></div>
+                <div class="detail-row"><div class="detail-label">Guests</div><div class="detail-value">@Model.Booking.Adults Adult(s), @Model.Booking.Children Child(ren)</div></div>
+                <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">@Model.Booking.Status</div></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-label">Accommodation and Service Charges</div>
+    <table class="charges">
+        <thead>
+            <tr>
+                <th class="desc-col">Description</th>
+                <th class="qty-col">Qty</th>
+                <th class="rate-col">Rate (LKR)</th>
+                <th class="amount-col">Amount (LKR)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    Room Charge
+                    <span class="small-note">@roomCount room(s), @nights night(s)</span>
+                </td>
+                <td class="qty-col">@roomNightQty</td>
+                <td class="rate-col money">@roomRate.ToString("N2")</td>
+                <td class="amount-col money">@Model.Booking.RoomCharge.ToString("N2")</td>
+            </tr>
+            <tr>
+                <td>Seasonal Charge (@Model.Booking.SeasonalChargePercent.ToString("N2")%)</td>
+                <td class="qty-col">1</td>
+                <td class="rate-col money">@Model.Booking.SeasonalChargeAmount.ToString("N2")</td>
+                <td class="amount-col money">@Model.Booking.SeasonalChargeAmount.ToString("N2")</td>
+            </tr>
+            <tr>
+                <td>Restaurant Bill</td>
+                <td class="qty-col">1</td>
+                <td class="rate-col money">@Model.Booking.RestaurantBill.ToString("N2")</td>
+                <td class="amount-col money">@Model.Booking.RestaurantBill.ToString("N2")</td>
+            </tr>
+            <tr>
+                <td>Bar Bill</td>
+                <td class="qty-col">1</td>
+                <td class="rate-col money">@Model.Booking.BarBill.ToString("N2")</td>
+                <td class="amount-col money">@Model.Booking.BarBill.ToString("N2")</td>
+            </tr>
+            <tr>
+                <td>Laundry Bill</td>
+                <td class="qty-col">1</td>
+                <td class="rate-col money">@Model.Booking.LaundryBill.ToString("N2")</td>
+                <td class="amount-col money">@Model.Booking.LaundryBill.ToString("N2")</td>
+            </tr>
+            <tr>
+                <td>Discount</td>
+                <td class="qty-col">1</td>
+                <td class="rate-col money">- @Model.Booking.Discount.ToString("N2")</td>
+                <td class="amount-col money">- @Model.Booking.Discount.ToString("N2")</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <section class="bottom-grid">
+        <div>
+            <div class="payment-box">
+                <div class="box-title">Payment Information</div>
+                <div class="payment-body">
+                    <div class="payment-options">
+                        <div class="pay-option"><span class="check-box @cashSelected"></span>Cash</div>
+                        <div class="pay-option"><span class="check-box @cardSelected"></span>Credit Card</div>
+                        <div class="pay-option"><span class="check-box @bankSelected"></span>Bank Transfer</div>
+                        <div class="pay-option"><span class="check-box @onlineSelected"></span>Online Payment</div>
+                    </div>
+                    <div class="payment-line"><strong>Payment Status:</strong> @Model.Booking.PaymentStatus</div>
+                    <div class="payment-line"><strong>Payment Method:</strong> @Model.Booking.PaymentMethod</div>
+                    <div class="payment-line"><strong>Advance Paid:</strong> Rs. @Model.Booking.AdvancePayment.ToString("N2")</div>
+                </div>
+            </div>
+
+            <div class="remarks">
+                <strong>Remarks:</strong>
+                @(string.IsNullOrWhiteSpace(Model.Booking.Remarks) ? "-" : Model.Booking.Remarks)
+            </div>
+        </div>
+
+        <div class="summary-box">
+            <div class="box-title gold">Invoice Summary</div>
+            <div class="summary-body">
+                <div class="summary-row"><span>Room Charge</span><strong>@Model.Booking.RoomCharge.ToString("N2")</strong></div>
+                <div class="summary-row"><span>Seasonal Charge</span><strong>@Model.Booking.SeasonalChargeAmount.ToString("N2")</strong></div>
+                <div class="summary-row"><span>Restaurant Bill</span><strong>@Model.Booking.RestaurantBill.ToString("N2")</strong></div>
+                <div class="summary-row"><span>Bar Bill</span><strong>@Model.Booking.BarBill.ToString("N2")</strong></div>
+                <div class="summary-row"><span>Laundry Bill</span><strong>@Model.Booking.LaundryBill.ToString("N2")</strong></div>
+                <div class="summary-divider"></div>
+                <div class="summary-row"><span>Subtotal</span><strong>@subtotal.ToString("N2")</strong></div>
+                <div class="summary-row"><span>Discount</span><strong>- @Model.Booking.Discount.ToString("N2")</strong></div>
+                <div class="grand-total"><span>Grand Total</span><span>Rs. @Model.Booking.GrandTotal.ToString("N2")</span></div>
+                <div class="summary-row advance-row"><span>Advance Paid</span><strong>- @Model.Booking.AdvancePayment.ToString("N2")</strong></div>
+                <div class="balance-due"><span>Balance Due</span><span>Rs. @balanceDue.ToString("N2")</span></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="thank-you">Thank you for staying with Kingswood Tea Factory Hotel</div>
+
+    <div class="signatures">
+        <div class="signature"><div class="signature-line"></div>Guest Signature</div>
+        <div class="signature"><div class="signature-line"></div>Authorized Signature</div>
+    </div>
+
+    <div class="footer">
+        Kingswood Tea Factory Hotel · Nuwara Eliya Road, Ramboda, Sri Lanka · +94 52 2 200 200 · info@kingswoodtea.lk · www.kingswoodtea.lk
+    </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+@page
+@model HotelBookingSystem.Pages.Customers.IndexModel
+@{
+    ViewData["Title"] = "Customers";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Customers</h1>
+        <div class="text-muted">Guest profiles and contact details.</div>
+    </div>
+    <a asp-page="Create" class="btn btn-primary">+ Add Customer</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-10">
+                <input name="search" value="@Request.Query["search"]" class="form-control" placeholder="Search by name, phone, passport or NIC" />
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-dark">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Passport / NIC</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Country</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var customer in Model.Customers)
+                {
+                    <tr>
+                        <td class="fw-semibold">@customer.FullName</td>
+                        <td>@(string.IsNullOrWhiteSpace(customer.PassportNo) ? customer.NicNo : customer.PassportNo)</td>
+                        <td>@customer.Phone</td>
+                        <td>@customer.Email</td>
+                        <td>@customer.Country</td>
+                        <td><a asp-page="Edit" asp-route-id="@customer.Id" class="btn btn-sm btn-outline-primary">Edit</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

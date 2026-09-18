@@ -1,0 +1,117 @@
+@page
+@model HotelBookingSystem.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Hotel Dashboard</h1>
+        <div class="text-muted">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Bookings/Create" class="btn btn-primary">+ New Booking</a>
+        <a asp-page="/Restaurant/POS" class="btn btn-dark">Open POS</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm bg-success text-white">
+            <div class="card-body">
+                <div class="text-uppercase small opacity-75">Ready Rooms</div>
+                <div class="stat-value">@Model.ReadyRooms</div>
+                <div>of @Model.TotalRooms active rooms</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm bg-danger text-white">
+            <div class="card-body">
+                <div class="text-uppercase small opacity-75">Occupied Rooms</div>
+                <div class="stat-value">@Model.OccupiedRooms</div>
+                <div>@Model.InHouseGuests in-house bookings</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm bg-warning">
+            <div class="card-body">
+                <div class="text-uppercase small opacity-75">Today's Arrivals</div>
+                <div class="stat-value">@Model.TodayArrivals</div>
+                <div>@Model.TodayDepartures departures</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card shadow-sm bg-dark text-white">
+            <div class="card-body">
+                <div class="text-uppercase small opacity-75">Maintenance</div>
+                <div class="stat-value">@Model.MaintenanceRooms</div>
+                <div>rooms currently blocked</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Today's Hotel Revenue</div>
+                <div class="h2 mb-0">Rs. @Model.TodayRevenue.ToString("N2")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Today's Restaurant Sales</div>
+                <div class="h2 mb-0">Rs. @Model.TodayRestaurantSales.ToString("N2")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Upcoming Reservations</h2>
+        <a asp-page="/Bookings/Index" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Booking</th>
+                        <th>Guest</th>
+                        <th>Rooms</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.UpcomingBookings.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">No upcoming reservations.</td></tr>
+                }
+                else
+                {
+                    @foreach (var booking in Model.UpcomingBookings)
+                    {
+                        <tr>
+                            <td>@booking.BookingNo</td>
+                            <td>@booking.Customer?.FullName</td>
+                            <td>@booking.RoomsDisplay</td>
+                            <td>@booking.CheckIn.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@booking.CheckOut.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>Rs. @booking.GrandTotal.ToString("N2")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

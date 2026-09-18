@@ -1,0 +1,30 @@
+KINGSWOOD HOTEL PMS - V4 UPDATE
+================================
+
+New in this version:
+1. Invoice redesigned to match the requested navy/gold A4 layout.
+2. Kingswood logo added to the invoice header.
+3. Invoice access and printing are restricted to Admin only.
+4. Advance Payment / Deposit field added to bookings.
+5. Invoice shows Advance Paid and Balance Due.
+6. Booking list shows advance and current balance.
+7. Existing SQLite databases are upgraded non-destructively with the AdvancePayment column.
+8. Reception checkout no longer redirects to the Admin-only invoice page.
+9. Existing Daily Meal Summary for Reception remains available for RO/BB/HB/FB planning.
+
+Important:
+- Back up hotel.db before applying the update.
+- The first run after updating automatically adds AdvancePayment to the existing Bookings table.
+- Grand Total remains the total invoice value. Advance Payment is deducted only when calculating Balance Due.
+- If Payment Status is Paid, Balance Due displays 0.00.
+
+Run locally:
+  dotnet clean
+  dotnet restore
+  dotnet build
+  dotnet run
+
+GitHub / Railway update:
+  git add .
+  git commit -m "Redesign invoice and add advance payments"
+  git push

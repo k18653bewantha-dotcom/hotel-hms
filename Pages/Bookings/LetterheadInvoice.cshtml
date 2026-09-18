@@ -1,0 +1,126 @@
+@page "{id:int}"
+@model HotelBookingSystem.Pages.Bookings.LetterheadInvoiceModel
+@{
+    Layout = null;
+    var nights = Math.Max(1, (Model.Booking.CheckOut.Date - Model.Booking.CheckIn.Date).Days);
+    var roomNumbers = string.Join(", ",
+        Model.Booking.BookingRooms
+            .Where(br => br.Room != null)
+            .Select(br => br.Room!.RoomNumber)
+            .OrderBy(x => x));
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Letterhead Invoice @Model.Booking.BookingNo</title>
+    <style>
+        @@page {
+            size: A4;
+            margin: 0;
+        }
+
+        html, body {
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111;
+        }
+
+        .sheet {
+            position: relative;
+            width: 210mm;
+            height: 297mm;
+        }
+
+        .field {
+            position: absolute;
+            font-size: 11pt;
+            line-height: 1.2;
+        }
+
+        .amount {
+            right: 26mm;
+            width: 42mm;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /*
+          These positions are designed for a typical pre-printed Kingswood letterhead.
+          Adjust top/left values by 1–3 mm if your printer shifts the page.
+        */
+        .invoice-no { top: 68mm; left: 34mm; }
+        .date       { top: 68mm; left: 132mm; }
+        .guest      { top: 79mm; left: 34mm; width: 140mm; }
+        .contact    { top: 88mm; left: 34mm; }
+        .rooms      { top: 98mm; left: 34mm; }
+        .check-in   { top: 108mm; left: 34mm; }
+        .check-out  { top: 108mm; left: 118mm; }
+        .nights     { top: 117mm; left: 34mm; }
+        .meal-plan  { top: 117mm; left: 118mm; }
+        .guests     { top: 126mm; left: 34mm; }
+
+        .room-charge       { top: 142mm; }
+        .seasonal-charge   { top: 152mm; }
+        .restaurant-charge { top: 162mm; }
+        .bar-charge        { top: 172mm; }
+        .laundry-charge    { top: 182mm; }
+        .discount-charge   { top: 192mm; }
+        .grand-total       { top: 207mm; font-weight: bold; font-size: 13pt; }
+        .advance-payment   { top: 217mm; }
+        .balance-due       { top: 227mm; font-weight: bold; font-size: 12pt; }
+
+        .payment { top: 239mm; left: 34mm; }
+        .remarks { top: 248mm; left: 34mm; width: 145mm; }
+
+        .print-controls {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            z-index: 99;
+        }
+
+        @@media print {
+            .print-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="print-controls">
+    <button onclick="window.print()">Print on Letterhead</button>
+    <button onclick="history.back()">Back</button>
+</div>
+
+<div class="sheet">
+    <div class="field invoice-no">INV-@Model.Booking.Id.ToString("00000")</div>
+    <div class="field date">@DateTime.Now.ToString("dd/MM/yyyy")</div>
+    <div class="field guest">@Model.Booking.Customer?.FullName</div>
+    <div class="field contact">@Model.Booking.Customer?.Phone</div>
+    <div class="field rooms">@roomNumbers</div>
+    <div class="field check-in">@Model.Booking.CheckIn.ToString("dd/MM/yyyy HH:mm")</div>
+    <div class="field check-out">@Model.Booking.CheckOut.ToString("dd/MM/yyyy HH:mm")</div>
+    <div class="field nights">@nights night(s)</div>
+    <div class="field meal-plan">Meal Plan: @Model.Booking.MealPlan</div>
+    <div class="field guests">Guests: @Model.Booking.Adults Adult(s), @Model.Booking.Children Child(ren)</div>
+
+    <div class="field amount room-charge">@Model.Booking.RoomCharge.ToString("N2")</div>
+    <div class="field amount seasonal-charge">@Model.Booking.SeasonalChargeAmount.ToString("N2")</div>
+    <div class="field amount restaurant-charge">@Model.Booking.RestaurantBill.ToString("N2")</div>
+    <div class="field amount bar-charge">@Model.Booking.BarBill.ToString("N2")</div>
+    <div class="field amount laundry-charge">@Model.Booking.LaundryBill.ToString("N2")</div>
+    <div class="field amount discount-charge">- @Model.Booking.Discount.ToString("N2")</div>
+    <div class="field amount grand-total">@Model.Booking.GrandTotal.ToString("N2")</div>
+    <div class="field amount advance-payment">Advance: - @Model.Booking.AdvancePayment.ToString("N2")</div>
+    <div class="field amount balance-due">Balance: @Model.Booking.BalanceDue.ToString("N2")</div>
+
+    <div class="field payment">@Model.Booking.PaymentMethod · @Model.Booking.PaymentStatus</div>
+    <div class="field remarks">@Model.Booking.Remarks</div>
+</div>
+</body>
+</html>

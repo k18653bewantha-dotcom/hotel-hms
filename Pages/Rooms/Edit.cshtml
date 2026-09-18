@@ -1,0 +1,63 @@
+@page "{id:int}"
+@model HotelBookingSystem.Pages.Rooms.EditModel
+@{
+    ViewData["Title"] = "Edit Room";
+}
+
+<div class="card shadow-sm mx-auto" style="max-width:760px">
+    <div class="card-header bg-dark text-white"><h1 class="h5 mb-0">Edit Room</h1></div>
+    <div class="card-body">
+        <form method="post">
+            <input asp-for="Room.Id" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="Room.RoomNumber" class="form-label"></label>
+                    <input asp-for="Room.RoomNumber" class="form-control" />
+                    <span asp-validation-for="Room.RoomNumber" class="text-danger"></span>
+                </div>
+                <div class="col-md-8">
+                    <label asp-for="Room.RoomType" class="form-label"></label>
+                    <input asp-for="Room.RoomType" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Room.Floor" class="form-label"></label>
+                    <input asp-for="Room.Floor" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Room.Capacity" class="form-label"></label>
+                    <input asp-for="Room.Capacity" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Room.PricePerNight" class="form-label">Default Rate</label>
+                    <input asp-for="Room.PricePerNight" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Room.Status" class="form-label"></label>
+                    <select asp-for="Room.Status" class="form-select">
+                        @foreach (var status in RoomStatuses.All)
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input asp-for="Room.IsActive" class="form-check-input" />
+                        <label asp-for="Room.IsActive" class="form-check-label"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary">Save Changes</button>
+                <a asp-page="Index" class="btn btn-secondary">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

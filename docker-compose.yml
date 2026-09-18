@@ -1,0 +1,13 @@
+services:
+  kingswood-pms:
+    build: .
+    ports:
+      - "5050:8080"
+    volumes:
+      - kingswood-data:/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DatabasePath=/data/hotel.db
+
+volumes:
+  kingswood-data:

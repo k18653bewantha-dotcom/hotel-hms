@@ -1,0 +1,43 @@
+@page
+@model HotelBookingSystem.Pages.Restaurant.Tables.IndexModel
+@{
+    ViewData["Title"] = "Restaurant Tables";
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white"><h1 class="h5 mb-0">Add Table</h1></div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Create">
+                    <label class="form-label">Table Number</label>
+                    <input name="tableNumber" class="form-control" placeholder="T6" required />
+                    <button class="btn btn-primary mt-3">Add Table</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="row g-3">
+        @foreach (var table in Model.Tables)
+        {
+            <div class="col-sm-6 col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <div class="h3">@table.TableNumber</div>
+                        <span class="badge @(table.Status == "Available" ? "bg-success" : "bg-danger")">@table.Status</span>
+                        <div class="mt-3">
+                            <form method="post" asp-page-handler="SetStatus">
+                                <input type="hidden" name="id" value="@table.Id" />
+                                <input type="hidden" name="status" value="@(table.Status == "Available" ? "Occupied" : "Available")" />
+                                <button class="btn btn-sm btn-outline-primary">Toggle Status</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        </div>
+    </div>
+</div>

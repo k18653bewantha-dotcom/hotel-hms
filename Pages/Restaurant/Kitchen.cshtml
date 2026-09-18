@@ -1,0 +1,119 @@
+@page
+@model HotelBookingSystem.Pages.Restaurant.KitchenModel
+@{
+    ViewData["Title"] = "Kitchen Live";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Kitchen Live</h1>
+        <div class="text-muted">Pending, preparing and ready restaurant orders.</div>
+    </div>
+    <a asp-page="POS" class="btn btn-primary">Back to POS</a>
+</div>
+
+<div class="row g-3">
+@if (Model.Orders.Count == 0)
+{
+    <div class="col-12">
+        <div class="alert alert-success">No active kitchen orders.</div>
+    </div>
+}
+else
+{
+    @foreach (var order in Model.Orders)
+    {
+        var cardClass = order.Status == OrderStatuses.Preparing
+            ? "preparing"
+            : order.Status == OrderStatuses.Ready
+                ? "ready"
+                : "";
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm kitchen-card @cardClass h-100">
+                <div class="card-header bg-white d-flex justify-content-between">
+                    <strong>@order.OrderNumber</strong>
+                    <span class="badge @(order.Status == OrderStatuses.Ready ? "bg-success" : order.Status == OrderStatuses.Preparing ? "bg-primary" : "bg-warning text-dark")">
+                        @order.Status
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-2">
+                        @if (order.OrderType == OrderTypes.RoomCharge)
+                        {
+                            <strong>Room Charge:</strong>
+                            <span>@order.Booking?.RoomsDisplay</span>
+                        }
+                        else
+                        {
+                            <strong>Table:</strong>
+                            <span>@order.RestaurantTable?.TableNumber</span>
+                        }
+                    </div>
+
+                    <div class="small text-muted mb-3">@order.OrderTime.ToString("dd MMM HH:mm")</div>
+
+                    <ul class="list-group list-group-flush mb-3">
+                        @foreach (var item in order.OrderItems)
+                        {
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <span>@item.MenuItem?.Name</span>
+                                <strong>× @item.Quantity</strong>
+                            </li>
+                        }
+                    </ul>
+
+                    @if (!string.IsNullOrWhiteSpace(order.Notes))
+                    {
+                        <div class="alert alert-warning py-2"><strong>Note:</strong> @order.Notes</div>
+                    }
+
+                    <div class="fw-bold mb-3">Total: Rs. @order.TotalAmount.ToString("N2")</div>
+
+                    <div class="d-grid gap-2">
+                        @if (order.Status == OrderStatuses.Pending)
+                        {
+                            <form method="post" asp-page-handler="Status">
+                                <input type="hidden" name="id" value="@order.Id" />
+                                <input type="hidden" name="status" value="@OrderStatuses.Preparing" />
+                                <button class="btn btn-primary w-100">Start Preparing</button>
+                            </form>
+                        }
+
+                        @if (order.Status == OrderStatuses.Preparing)
+                        {
+                            <form method="post" asp-page-handler="Status">
+                                <input type="hidden" name="id" value="@order.Id" />
+                                <input type="hidden" name="status" value="@OrderStatuses.Ready" />
+                                <button class="btn btn-success w-100">Mark Ready</button>
+                            </form>
+                        }
+
+                        @if (order.Status == OrderStatuses.Ready)
+                        {
+                            <form method="post" asp-page-handler="Status">
+                                <input type="hidden" name="id" value="@order.Id" />
+                                <input type="hidden" name="status" value="@OrderStatuses.Served" />
+                                <button class="btn btn-dark w-100">Served / Complete</button>
+                            </form>
+                        }
+
+                        <form method="post" asp-page-handler="Status">
+                            <input type="hidden" name="id" value="@order.Id" />
+                            <input type="hidden" name="status" value="@OrderStatuses.Cancelled" />
+                            <button class="btn btn-outline-danger w-100" data-confirm="Cancel this order?">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+</div>
+
+@section Scripts {
+<script>
+    setTimeout(() => window.location.reload(), 15000);
+</script>
+}

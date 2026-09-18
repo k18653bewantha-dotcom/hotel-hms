@@ -1,0 +1,196 @@
+@page
+@model HotelBookingSystem.Pages.Reports.DailyMealsModel
+@{
+    ViewData["Title"] = "Daily Meal Summary";
+}
+
+<style>
+    @@media print {
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+
+        .no-print,
+        header,
+        footer {
+            display: none !important;
+        }
+
+        main.container-fluid {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+
+        body {
+            font-size: 10px;
+            background: #fff !important;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #aaa !important;
+        }
+
+        .table th,
+        .table td {
+            padding: 4px 5px !important;
+        }
+    }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Daily Restaurant Meal Summary</h1>
+        <div class="text-muted">Room and meal-plan summary prepared by Reception for the restaurant.</div>
+    </div>
+    <button type="button" onclick="window.print()" class="btn btn-dark no-print">Print Daily Summary</button>
+</div>
+
+<div class="card shadow-sm mb-4 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5 col-lg-4">
+                <label asp-for="Date" class="form-label">Meal Date</label>
+                <input asp-for="Date" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3 d-grid">
+                <button class="btn btn-primary">Load Summary</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="text-center mb-3">
+    <h2 class="h4 mb-1">Kingswood Tea Factory Hotel</h2>
+    <div class="fw-semibold">Restaurant Meal Summary — @Model.Date.ToString("dddd, dd MMMM yyyy")</div>
+    <div class="small text-muted">Prepared from hotel bookings and meal plans</div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-muted">BB</div>
+                <div class="h3 mb-0">@Model.BBPax Pax</div>
+                <div class="small">@Model.BBRooms room(s)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-muted">HB</div>
+                <div class="h3 mb-0">@Model.HBPax Pax</div>
+                <div class="small">@Model.HBRooms room(s)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-muted">FB</div>
+                <div class="h3 mb-0">@Model.FBPax Pax</div>
+                <div class="small">@Model.FBRooms room(s)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <div class="text-muted">Total In Summary</div>
+                <div class="h3 mb-0">@Model.TotalGuests Pax</div>
+                <div class="small">@Model.TotalRooms room(s)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="alert alert-success mb-0 text-center">
+            <div class="small text-uppercase">Breakfast</div>
+            <strong class="fs-3">@Model.BreakfastPax Pax</strong>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="alert alert-warning mb-0 text-center">
+            <div class="small text-uppercase">Lunch</div>
+            <strong class="fs-3">@Model.LunchPax Pax</strong>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="alert alert-info mb-0 text-center">
+            <div class="small text-uppercase">Dinner</div>
+            <strong class="fs-3">@Model.DinnerPax Pax</strong>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white d-flex justify-content-between">
+        <strong>Room-by-Room / Booking Summary</strong>
+        <span>@Model.Rows.Count booking(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Rooms</th>
+                        <th>Booking</th>
+                        <th>Guest</th>
+                        <th class="text-center">Plan</th>
+                        <th class="text-center">Adults</th>
+                        <th class="text-center">Children</th>
+                        <th class="text-center">Total Pax</th>
+                        <th class="text-center">Breakfast</th>
+                        <th class="text-center">Lunch</th>
+                        <th class="text-center">Dinner</th>
+                        <th>Arrival</th>
+                        <th>Departure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Rows.Count == 0)
+                {
+                    <tr>
+                        <td colspan="12" class="text-center text-muted py-4">No active bookings for the selected date.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            <td class="fw-bold">@row.Rooms</td>
+                            <td>@row.BookingNo</td>
+                            <td>@row.GuestName</td>
+                            <td class="text-center"><span class="badge bg-dark">@row.MealPlan</span></td>
+                            <td class="text-center">@row.Adults</td>
+                            <td class="text-center">@row.Children</td>
+                            <td class="text-center fw-bold">@row.TotalPax</td>
+                            <td class="text-center fw-bold">@row.BreakfastPax</td>
+                            <td class="text-center fw-bold">@row.LunchPax</td>
+                            <td class="text-center fw-bold">@row.DinnerPax</td>
+                            <td>@row.CheckIn.ToString("dd MMM HH:mm")</td>
+                            <td>@row.CheckOut.ToString("dd MMM HH:mm")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="small text-muted mt-3">
+    <strong>Meal calculation:</strong> BB = breakfast. HB = breakfast + dinner. FB = breakfast + lunch + dinner.
+    Breakfast is counted for guests who stayed the previous night, including their checkout morning.
+</div>
+
+<div class="row mt-5 d-none d-print-flex">
+    <div class="col-6 text-center">____________________________<br />Reception</div>
+    <div class="col-6 text-center">____________________________<br />Restaurant</div>
+</div>

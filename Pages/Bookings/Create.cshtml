@@ -1,0 +1,287 @@
+@page
+@model HotelBookingSystem.Pages.Bookings.CreateModel
+@{
+    ViewData["Title"] = "Create Booking";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Create Booking</h1>
+        <div class="text-muted">Select dates first. Only rooms available for the full stay will be shown.</div>
+    </div>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Bookings</a>
+</div>
+
+<form method="post" id="bookingForm">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h2 class="h5 mb-0">Guest & Stay Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <label asp-for="Booking.CustomerId" class="form-label">Customer</label>
+                    <select asp-for="Booking.CustomerId" asp-items="Model.Customers" class="form-select">
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                    <span asp-validation-for="Booking.CustomerId" class="text-danger"></span>
+                    <div class="form-text"><a asp-page="/Customers/Create">Create a new customer</a></div>
+                </div>
+
+                <div class="col-lg-4">
+                    <label asp-for="Booking.CheckIn" class="form-label">Check In</label>
+                    <input asp-for="Booking.CheckIn" type="datetime-local" class="form-control" id="checkIn" />
+                </div>
+
+                <div class="col-lg-4">
+                    <label asp-for="Booking.CheckOut" class="form-label">Check Out</label>
+                    <input asp-for="Booking.CheckOut" type="datetime-local" class="form-control" id="checkOut" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.MealPlan" class="form-label">Meal Plan</label>
+                    <select asp-for="Booking.MealPlan" class="form-select">
+                        <option value="@MealPlans.RO">RO - Room Only</option>
+                        <option value="@MealPlans.BB">BB - Bed & Breakfast</option>
+                        <option value="@MealPlans.HB">HB - Half Board</option>
+                        <option value="@MealPlans.FB">FB - Full Board</option>
+                    </select>
+                    <span asp-validation-for="Booking.MealPlan" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.Adults" class="form-label">Adults</label>
+                    <input asp-for="Booking.Adults" type="number" min="1" class="form-control" />
+                    <span asp-validation-for="Booking.Adults" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.Children" class="form-label">Children</label>
+                    <input asp-for="Booking.Children" type="number" min="0" class="form-control" />
+                    <span asp-validation-for="Booking.Children" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h2 class="h5 mb-0">Available Rooms</h2>
+                <small class="text-muted">Select one or more rooms.</small>
+            </div>
+            <button type="button" class="btn btn-outline-success btn-sm" id="refreshRooms">
+                Refresh Availability
+            </button>
+        </div>
+
+        <div class="card-body">
+            <div id="roomLoading" class="text-center py-4 d-none">
+                <div class="spinner-border text-success" role="status"></div>
+                <div class="mt-2 text-muted">Checking room availability...</div>
+            </div>
+
+            <div id="availableRooms" class="row g-3">
+                @if (Model.AvailableRooms.Count == 0)
+                {
+                    <div class="col-12">
+                        <div class="alert alert-warning mb-0">
+                            No rooms are available for the selected dates.
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var room in Model.AvailableRooms)
+                    {
+                        <div class="col-sm-6 col-md-4 col-xl-3">
+                            <label class="room-select-card">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <input type="checkbox"
+                                           name="SelectedRoomIds"
+                                           value="@room.Id"
+                                           class="form-check-input"
+                                           checked="@Model.SelectedRoomIds.Contains(room.Id)" />
+                                    <span class="badge bg-success">Available</span>
+                                </div>
+                                <div class="h4 mb-1 mt-3">Room @room.RoomNumber</div>
+                                <div class="text-muted">@room.RoomType</div>
+                                <div class="small mt-2">Capacity: @room.Capacity guest(s)</div>
+                            </label>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h2 class="h5 mb-0">Billing Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="Booking.RoomCharge" class="form-label">Total Room Charge</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs.</span>
+                        <input asp-for="Booking.RoomCharge" class="form-control" min="0" step="0.01" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.SeasonalChargePercent" class="form-label">Seasonal Charge %</label>
+                    <input asp-for="Booking.SeasonalChargePercent" class="form-control" min="0" step="0.01" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.Discount" class="form-label">Discount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs.</span>
+                        <input asp-for="Booking.Discount" class="form-control" min="0" step="0.01" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.AdvancePayment" class="form-label">Advance Payment / Deposit</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs.</span>
+                        <input asp-for="Booking.AdvancePayment" class="form-control" min="0" step="0.01" />
+                    </div>
+                    <span asp-validation-for="Booking.AdvancePayment" class="text-danger"></span>
+                    <div class="form-text">Enter the amount already received from the guest for this booking.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Restaurant Bill</label>
+                    <input class="form-control" value="Added automatically from Restaurant POS" readonly />
+                    <div class="form-text">Room-charge orders are posted after the kitchen marks them Served.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.BarBill" class="form-label">Bar Bill</label>
+                    <input asp-for="Booking.BarBill" class="form-control" min="0" step="0.01" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.LaundryBill" class="form-label">Laundry Bill</label>
+                    <input asp-for="Booking.LaundryBill" class="form-control" min="0" step="0.01" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.PaymentStatus" class="form-label">Payment Status</label>
+                    <select asp-for="Booking.PaymentStatus" class="form-select">
+                        <option value="@PaymentStatuses.Pending">Pending</option>
+                        <option value="@PaymentStatuses.PartPaid">Part Paid</option>
+                        <option value="@PaymentStatuses.Paid">Paid</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Booking.PaymentMethod" class="form-label">Payment Method</label>
+                    <select asp-for="Booking.PaymentMethod" class="form-select">
+                        <option>Cash</option>
+                        <option>Credit Card</option>
+                        <option>Bank Transfer</option>
+                        <option>Online Payment</option>
+                    </select>
+                </div>
+
+                <div class="col-md-12">
+                    <label asp-for="Booking.Remarks" class="form-label">Remarks</label>
+                    <textarea asp-for="Booking.Remarks" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg">Create Booking</button>
+    <a asp-page="Index" class="btn btn-secondary btn-lg">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const checkIn = document.getElementById("checkIn");
+        const checkOut = document.getElementById("checkOut");
+        const container = document.getElementById("availableRooms");
+        const loading = document.getElementById("roomLoading");
+        const refreshButton = document.getElementById("refreshRooms");
+
+        function escapeHtml(value) {
+            const div = document.createElement("div");
+            div.textContent = value ?? "";
+            return div.innerHTML;
+        }
+
+        async function loadAvailableRooms() {
+            if (!checkIn.value || !checkOut.value) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">Select check-in and check-out dates.</div>
+                    </div>`;
+                return;
+            }
+
+            if (new Date(checkOut.value) <= new Date(checkIn.value)) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger mb-0">Check-out must be after check-in.</div>
+                    </div>`;
+                return;
+            }
+
+            loading.classList.remove("d-none");
+            container.classList.add("d-none");
+
+            try {
+                const url = `?handler=AvailableRooms&checkIn=${encodeURIComponent(checkIn.value)}&checkOut=${encodeURIComponent(checkOut.value)}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error("Unable to load rooms.");
+                }
+
+                const rooms = await response.json();
+
+                if (rooms.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12">
+                            <div class="alert alert-warning mb-0">No rooms are available for the selected dates.</div>
+                        </div>`;
+                } else {
+                    container.innerHTML = rooms.map(room => `
+                        <div class="col-sm-6 col-md-4 col-xl-3">
+                            <label class="room-select-card">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <input type="checkbox"
+                                           name="SelectedRoomIds"
+                                           value="${room.id}"
+                                           class="form-check-input" />
+                                    <span class="badge bg-success">Available</span>
+                                </div>
+                                <div class="h4 mb-1 mt-3">Room ${escapeHtml(room.roomNumber)}</div>
+                                <div class="text-muted">${escapeHtml(room.roomType)}</div>
+                                <div class="small mt-2">Capacity: ${room.capacity} guest(s)</div>
+                            </label>
+                        </div>`).join("");
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger mb-0">${escapeHtml(error.message)}</div>
+                    </div>`;
+            } finally {
+                loading.classList.add("d-none");
+                container.classList.remove("d-none");
+            }
+        }
+
+        checkIn.addEventListener("change", loadAvailableRooms);
+        checkOut.addEventListener("change", loadAvailableRooms);
+        refreshButton.addEventListener("click", loadAvailableRooms);
+    </script>
+}

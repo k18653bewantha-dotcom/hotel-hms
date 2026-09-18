@@ -1,0 +1,180 @@
+@page
+@using HotelBookingSystem.Models
+@model HotelBookingSystem.Pages.Admin.Users.IndexModel
+@{
+    ViewData["Title"] = "User Accounts";
+}
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Separate User Logins</h1>
+        <div class="text-muted">Create individual accounts and limit each department to its own pages.</div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h2 class="h5 mb-0">Create Account</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Create">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewUser.DisplayName" class="form-label"></label>
+                        <input asp-for="NewUser.DisplayName" class="form-control" />
+                        <span asp-validation-for="NewUser.DisplayName" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewUser.Username" class="form-label"></label>
+                        <input asp-for="NewUser.Username" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="NewUser.Username" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewUser.Role" class="form-label"></label>
+                        <select asp-for="NewUser.Role" class="form-select">
+                            @foreach (var role in UserRoles.All)
+                            {
+                                <option value="@role">@role</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewUser.Role" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewUser.TemporaryPassword" class="form-label"></label>
+                        <input asp-for="NewUser.TemporaryPassword" class="form-control" autocomplete="new-password" />
+                        <span asp-validation-for="NewUser.TemporaryPassword" class="text-danger"></span>
+                        <div class="form-text">Minimum 8 characters, with a letter and a number.</div>
+                    </div>
+
+                    <button class="btn btn-primary w-100">Create User</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-body small">
+                <div><strong>Admin:</strong> Complete system access and user management.</div>
+                <div class="mt-2"><strong>Reception:</strong> Rooms, guests, bookings, invoices and reports.</div>
+                <div class="mt-2"><strong>Restaurant:</strong> POS, kitchen, menus and tables.</div>
+                <div class="mt-2"><strong>Housekeeping:</strong> Housekeeping room-status screen only.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Existing Accounts</h2>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th style="min-width:270px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@user.DisplayName</div>
+                                    <div class="small text-muted">@user.Username</div>
+                                </td>
+                                <td>
+                                    <form method="post" asp-page-handler="Role" class="d-flex gap-2">
+                                        <input type="hidden" name="id" value="@user.Id" />
+                                        <select name="role" class="form-select form-select-sm">
+                                            @foreach (var role in UserRoles.All)
+                                            {
+                                                if (user.Role == role)
+                                                {
+                                                    <option value="@role" selected>@role</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@role">@role</option>
+                                                }
+                                            }
+                                        </select>
+                                        <button class="btn btn-outline-primary btn-sm">Save</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(user.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                    @if (user.MustChangePassword)
+                                    {
+                                        <div class="small text-warning mt-1">Password change required</div>
+                                    }
+                                </td>
+                                <td>
+                                    @(user.LastLoginAt.HasValue
+                                        ? user.LastLoginAt.Value.ToString("dd MMM yyyy HH:mm")
+                                        : "Never")
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form method="post" asp-page-handler="Toggle">
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                                @(user.IsActive ? "Deactivate" : "Activate")
+                                            </button>
+                                        </form>
+
+                                        <button type="button"
+                                                class="btn btn-outline-dark btn-sm"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#reset-@user.Id">
+                                            Reset Password
+                                        </button>
+                                    </div>
+
+                                    <div class="collapse mt-2" id="reset-@user.Id">
+                                        <form method="post" asp-page-handler="ResetPassword" class="input-group input-group-sm">
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <input type="password"
+                                                   name="temporaryPassword"
+                                                   class="form-control"
+                                                   placeholder="New temporary password"
+                                                   required
+                                                   minlength="8"
+                                                   autocomplete="new-password" />
+                                            <button class="btn btn-dark">Reset</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

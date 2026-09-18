@@ -1,0 +1,125 @@
+@using HotelBookingSystem.Models
+@using System.Security.Claims
+@{
+    var isAdmin = User.IsInRole(UserRoles.Admin);
+    var canReception = isAdmin || User.IsInRole(UserRoles.Reception);
+    var canRestaurant = isAdmin || User.IsInRole(UserRoles.Restaurant);
+    var canHousekeeping = isAdmin || User.IsInRole(UserRoles.Housekeeping);
+    var homePage = User.IsInRole(UserRoles.Restaurant) && !isAdmin
+        ? "/Restaurant/POS"
+        : User.IsInRole(UserRoles.Housekeeping) && !isAdmin
+            ? "/Housekeeping/Index"
+            : "/Index";
+    var roleName = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Kingswood Hotel PMS</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-xl navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" asp-page="@homePage">🏨 Kingswood Hotel PMS</a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto">
+                    @if (canReception)
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-page="/Index">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Rooms/Index">Rooms</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Customers/Index">Customers</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Bookings/Index">Bookings</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Bookings/Scheduler">Calendar</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Reports/Index">Reports</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/Reports/DailyMeals">Meal Summary</a></li>
+                    }
+
+                    @if (canHousekeeping)
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-page="/Housekeeping/Index">Housekeeping</a></li>
+                    }
+
+                    @if (canRestaurant)
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Restaurant</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-page="/Restaurant/POS">POS</a></li>
+                                <li><a class="dropdown-item" asp-page="/Restaurant/Kitchen">Kitchen Live</a></li>
+                                <li><a class="dropdown-item" asp-page="/Restaurant/MenuItems/Index">Menu Items</a></li>
+                                <li><a class="dropdown-item" asp-page="/Restaurant/Categories/Index">Categories</a></li>
+                                <li><a class="dropdown-item" asp-page="/Restaurant/Tables/Index">Tables</a></li>
+                            </ul>
+                        </li>
+                    }
+
+                    @if (isAdmin)
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-page="/Admin/Users/Index">User Accounts</a></li>
+                    }
+                </ul>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle text-start" type="button" data-bs-toggle="dropdown">
+                            <span class="fw-semibold">@User.Identity.Name</span>
+                            <span class="small opacity-75"> · @roleName</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" asp-page="/Account/ChangePassword">Change Password</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form method="post" asp-page="/Account/Logout">
+                                    <button class="dropdown-item text-danger" type="submit">Sign Out</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    </nav>
+</header>
+
+<main class="container-fluid px-4 py-4">
+    @if (TempData["Success"] is string globalSuccess)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @globalSuccess
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] is string globalError)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @globalError
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @RenderBody()
+</main>
+
+<footer class="border-top bg-white py-3 mt-4">
+    <div class="container-fluid px-4 text-muted small">
+        © 2026 Kingswood Tea Factory Hotel · +94 52 2 200 200
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

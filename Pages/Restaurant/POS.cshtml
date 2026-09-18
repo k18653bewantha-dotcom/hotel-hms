@@ -1,0 +1,305 @@
+@page
+@model HotelBookingSystem.Pages.Restaurant.POSModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Restaurant POS";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Restaurant POS</h1>
+        <div class="text-muted">Create dine-in orders or post orders to an in-house room.</div>
+    </div>
+    <a asp-page="Kitchen" class="btn btn-dark">Kitchen Live</a>
+</div>
+
+<form id="antiForgeryForm" method="post">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex flex-wrap gap-2" id="categoryFilters">
+                    <button type="button" class="btn btn-dark category-filter active" data-category="all">All</button>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <button type="button"
+                                class="btn btn-outline-primary category-filter"
+                                data-category="@category.Id">
+                            @category.Name
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row g-3" id="menuGrid">
+                    @foreach (var item in Model.MenuItems)
+                    {
+                        <div class="col-sm-6 col-md-4 col-lg-3 menu-card"
+                             data-category="@item.MenuCategoryId">
+                            <button type="button"
+                                    class="btn btn-success w-100 pos-menu-item p-3"
+                                    data-menu-id="@item.Id"
+                                    data-menu-name="@item.Name"
+                                    data-menu-price="@item.Price.ToString(CultureInfo.InvariantCulture)">
+                                <strong>@item.Name</strong>
+                                <br />
+                                <span>Rs. @item.Price.ToString("N2")</span>
+                                <br />
+                                <small>@item.MenuCategory?.Name</small>
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card shadow-sm position-sticky" style="top:1rem">
+            <div class="card-header bg-dark text-white">
+                <h2 class="h5 mb-0">Current Order</h2>
+            </div>
+
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Order Type</label>
+                    <select id="orderType" class="form-select">
+                        <option value="@OrderTypes.DineIn">Dine In</option>
+                        <option value="@OrderTypes.RoomCharge">Charge to Room</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="tableSection">
+                    <label class="form-label">Restaurant Table</label>
+                    <select id="tableId" class="form-select">
+                        <option value="">-- Select Table --</option>
+                        @foreach (var table in Model.Tables)
+                        {
+                            <option value="@table.Id">@table.TableNumber (@table.Status)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3 d-none" id="bookingSection">
+                    <label class="form-label">In-House Booking</label>
+                    <select id="bookingId" class="form-select">
+                        <option value="">-- Select Room Booking --</option>
+                        @foreach (var booking in Model.InHouseBookings)
+                        {
+                            <option value="@booking.Id">
+                                @booking.BookingNo · Rooms @booking.RoomsDisplay · @booking.Customer?.FullName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div id="orderLines" class="border rounded p-2 mb-3" style="min-height:220px">
+                    <div class="text-muted text-center py-5">Select menu items.</div>
+                </div>
+
+                <div class="d-flex justify-content-between fs-5 mb-3">
+                    <strong>Total</strong>
+                    <strong>Rs. <span id="orderTotal">0.00</span></strong>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Kitchen Notes</label>
+                    <textarea id="notes" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="button" id="sendOrder" class="btn btn-warning btn-lg">Send to Kitchen</button>
+                    <button type="button" id="clearOrder" class="btn btn-outline-secondary">Clear</button>
+                </div>
+
+                <div id="posMessage" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const order = [];
+    const lines = document.getElementById("orderLines");
+    const totalElement = document.getElementById("orderTotal");
+    const orderType = document.getElementById("orderType");
+    const tableSection = document.getElementById("tableSection");
+    const bookingSection = document.getElementById("bookingSection");
+    const message = document.getElementById("posMessage");
+
+    document.querySelectorAll(".category-filter").forEach(button => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".category-filter").forEach(x => {
+                x.classList.remove("btn-dark", "active");
+                x.classList.add("btn-outline-primary");
+            });
+
+            button.classList.remove("btn-outline-primary");
+            button.classList.add("btn-dark", "active");
+
+            const category = button.dataset.category;
+            document.querySelectorAll(".menu-card").forEach(card => {
+                card.classList.toggle(
+                    "d-none",
+                    category !== "all" && card.dataset.category !== category
+                );
+            });
+        });
+    });
+
+    document.querySelectorAll("[data-menu-id]").forEach(button => {
+        button.addEventListener("click", () => {
+            const id = Number(button.dataset.menuId);
+            const existing = order.find(x => x.menuItemId === id);
+
+            if (existing) {
+                existing.quantity++;
+            } else {
+                order.push({
+                    menuItemId: id,
+                    name: button.dataset.menuName,
+                    price: Number(button.dataset.menuPrice),
+                    quantity: 1
+                });
+            }
+
+            renderOrder();
+        });
+    });
+
+    orderType.addEventListener("change", () => {
+        const roomCharge = orderType.value === "@OrderTypes.RoomCharge";
+        bookingSection.classList.toggle("d-none", !roomCharge);
+        tableSection.classList.toggle("d-none", roomCharge);
+    });
+
+    function changeQuantity(id, delta) {
+        const item = order.find(x => x.menuItemId === id);
+        if (!item) return;
+
+        item.quantity += delta;
+
+        if (item.quantity <= 0) {
+            const index = order.indexOf(item);
+            order.splice(index, 1);
+        }
+
+        renderOrder();
+    }
+
+    function renderOrder() {
+        if (order.length === 0) {
+            lines.innerHTML = '<div class="text-muted text-center py-5">Select menu items.</div>';
+            totalElement.textContent = "0.00";
+            return;
+        }
+
+        let total = 0;
+
+        lines.innerHTML = order.map(item => {
+            const lineTotal = item.price * item.quantity;
+            total += lineTotal;
+
+            return `
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <strong>${escapeHtml(item.name)}</strong>
+                        <div class="small text-muted">Rs. ${item.price.toFixed(2)} × ${item.quantity}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="changeQuantity(${item.menuItemId}, -1)">−</button>
+                        <span class="px-2">${item.quantity}</span>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="changeQuantity(${item.menuItemId}, 1)">+</button>
+                    </div>
+                </div>`;
+        }).join("");
+
+        totalElement.textContent = total.toFixed(2);
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value ?? "";
+        return div.innerHTML;
+    }
+
+    document.getElementById("clearOrder").addEventListener("click", () => {
+        order.splice(0, order.length);
+        renderOrder();
+        message.innerHTML = "";
+    });
+
+    document.getElementById("sendOrder").addEventListener("click", async () => {
+        message.innerHTML = "";
+
+        if (order.length === 0) {
+            message.innerHTML = '<div class="alert alert-danger">Select at least one item.</div>';
+            return;
+        }
+
+        const isRoomCharge = orderType.value === "@OrderTypes.RoomCharge";
+        const tableId = document.getElementById("tableId").value;
+        const bookingId = document.getElementById("bookingId").value;
+
+        if (!isRoomCharge && !tableId) {
+            message.innerHTML = '<div class="alert alert-danger">Select a table.</div>';
+            return;
+        }
+
+        if (isRoomCharge && !bookingId) {
+            message.innerHTML = '<div class="alert alert-danger">Select an in-house booking.</div>';
+            return;
+        }
+
+        const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]').value;
+
+        try {
+            const response = await fetch("?handler=SendOrder", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": token
+                },
+                body: JSON.stringify({
+                    orderType: orderType.value,
+                    restaurantTableId: tableId ? Number(tableId) : null,
+                    bookingId: bookingId ? Number(bookingId) : null,
+                    notes: document.getElementById("notes").value,
+                    items: order.map(item => ({
+                        menuItemId: item.menuItemId,
+                        quantity: item.quantity
+                    }))
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "Order could not be sent.");
+            }
+
+            const roomPostingMessage = isRoomCharge
+                ? "<br><strong>This amount will be added to the guest room bill when Kitchen Live marks the order Served.</strong>"
+                : "";
+
+            message.innerHTML = `
+                <div class="alert alert-success">
+                    ${escapeHtml(result.orderNumber)} sent to kitchen.
+                    Total: Rs. ${Number(result.total).toFixed(2)}
+                    ${roomPostingMessage}
+                </div>`;
+
+            order.splice(0, order.length);
+            renderOrder();
+            document.getElementById("notes").value = "";
+        } catch (error) {
+            message.innerHTML = `<div class="alert alert-danger">${escapeHtml(error.message)}</div>`;
+        }
+    });
+</script>
+}

@@ -1,0 +1,79 @@
+@page
+@model HotelBookingSystem.Pages.Rooms.IndexModel
+@{
+    ViewData["Title"] = "Rooms";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Room Management</h1>
+        <div class="text-muted">Manage room details and operational status.</div>
+    </div>
+    <a asp-page="Create" class="btn btn-primary">+ Add Room</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Room</th>
+                        <th>Type</th>
+                        <th>Floor</th>
+                        <th>Capacity</th>
+                        <th>Rate</th>
+                        <th>Status</th>
+                        <th>Active</th>
+                        <th style="min-width:330px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var room in Model.Rooms)
+                {
+                    var badge = room.Status switch
+                    {
+                        RoomStatuses.Ready => "bg-success",
+                        RoomStatuses.Occupied => "bg-danger",
+                        RoomStatuses.Reserved => "bg-warning text-dark",
+                        RoomStatuses.Cleaning => "bg-info text-dark",
+                        RoomStatuses.Dirty => "bg-secondary",
+                        RoomStatuses.Maintenance => "bg-dark",
+                        _ => "bg-secondary"
+                    };
+
+                    <tr class="@(!room.IsActive ? "opacity-50" : "")">
+                        <td class="fw-bold">@room.RoomNumber</td>
+                        <td>@room.RoomType</td>
+                        <td>@room.Floor</td>
+                        <td>@room.Capacity</td>
+                        <td>Rs. @room.PricePerNight.ToString("N2")</td>
+                        <td><span class="badge @badge">@room.Status</span></td>
+                        <td>@(room.IsActive ? "Yes" : "No")</td>
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@room.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+
+                            @foreach (var status in RoomStatuses.All)
+                            {
+                                if (status == room.Status) { continue; }
+                                <form method="post" asp-page-handler="SetStatus" class="d-inline">
+                                    <input type="hidden" name="id" value="@room.Id" />
+                                    <input type="hidden" name="status" value="@status" />
+                                    <button class="btn btn-sm btn-outline-secondary mb-1">@status</button>
+                                </form>
+                            }
+
+                            <form method="post" asp-page-handler="ToggleActive" class="d-inline">
+                                <input type="hidden" name="id" value="@room.Id" />
+                                <button class="btn btn-sm @(room.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                    @(room.IsActive ? "Disable" : "Enable")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

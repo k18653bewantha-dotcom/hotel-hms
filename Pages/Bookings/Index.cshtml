@@ -1,0 +1,258 @@
+@page
+@model HotelBookingSystem.Pages.Bookings.IndexModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Bookings";
+    var isAdmin = User.IsInRole(UserRoles.Admin);
+}
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="h3 mb-1">Bookings</h1>
+        <div class="text-muted">Multi-room reservations, check-in, checkout and invoices.</div>
+    </div>
+    <a asp-page="Create" class="btn btn-primary">+ New Booking</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Booking</th>
+                        <th>Rooms</th>
+                        <th>Guest</th>
+                        <th>Plan / Pax</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th style="min-width:330px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Bookings.Count == 0)
+                {
+                    <tr><td colspan="10" class="text-center text-muted py-4">No bookings found.</td></tr>
+                }
+                else
+                {
+                    @foreach (var booking in Model.Bookings)
+                    {
+                        var statusBadge = booking.Status switch
+                        {
+                            BookingStatuses.Reserved => "bg-warning text-dark",
+                            BookingStatuses.CheckedIn => "bg-danger",
+                            BookingStatuses.CheckedOut => "bg-success",
+                            BookingStatuses.Cancelled => "bg-secondary",
+                            _ => "bg-dark"
+                        };
+
+                        var paymentBadge = booking.PaymentStatus == PaymentStatuses.Paid
+                            ? "bg-success"
+                            : booking.PaymentStatus == PaymentStatuses.PartPaid
+                                ? "bg-warning text-dark"
+                                : "bg-danger";
+
+                        <tr>
+                            <td class="fw-semibold">@booking.BookingNo</td>
+                            <td>@booking.RoomsDisplay</td>
+                            <td>@booking.Customer?.FullName</td>
+                            <td><strong>@booking.MealPlan</strong><br /><span class="small text-muted">@booking.Adults A / @booking.Children C</span></td>
+                            <td>@booking.CheckIn.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@booking.CheckOut.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>Rs. @booking.GrandTotal.ToString("N2")</td>
+                            <td>
+                                <span class="badge @paymentBadge">@booking.PaymentStatus</span>
+                                <div class="small text-muted mt-1">Advance: Rs. @booking.AdvancePayment.ToString("N2")</div>
+                                <div class="small text-muted">Balance: Rs. @booking.BalanceDue.ToString("N2")</div>
+                            </td>
+                            <td><span class="badge @statusBadge">@booking.Status</span></td>
+                            <td>
+                                @if (isAdmin && booking.Status != BookingStatuses.CheckedOut && booking.Status != BookingStatuses.Cancelled)
+                                {
+                                    <a asp-page="Edit" asp-route-id="@booking.Id" class="btn btn-warning btn-sm">Admin Edit</a>
+                                }
+                                @if (isAdmin)
+                                {
+                                    <a asp-page="Invoice" asp-route-id="@booking.Id" class="btn btn-info btn-sm">Invoice</a>
+                                    <a asp-page="LetterheadInvoice" asp-route-id="@booking.Id" class="btn btn-outline-info btn-sm">Letterhead</a>
+                                }
+
+                                @if (booking.Status == BookingStatuses.Reserved)
+                                {
+                                    <form method="post" asp-page-handler="CheckIn" class="d-inline">
+                                        <input type="hidden" name="id" value="@booking.Id" />
+                                        <button class="btn btn-primary btn-sm">Check-In</button>
+                                    </form>
+
+                                    <form method="post" asp-page-handler="Cancel" class="d-inline">
+                                        <input type="hidden" name="id" value="@booking.Id" />
+                                        <button class="btn btn-outline-danger btn-sm"
+                                                data-confirm="Cancel this booking?">
+                                            Cancel
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (booking.Status == BookingStatuses.CheckedIn)
+                                {
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#checkoutModal"
+                                            data-id="@booking.Id"
+                                            data-restaurant="@booking.RestaurantBill.ToString(CultureInfo.InvariantCulture)"
+                                            data-bar="@booking.BarBill.ToString(CultureInfo.InvariantCulture)"
+                                            data-laundry="@booking.LaundryBill.ToString(CultureInfo.InvariantCulture)"
+                                            data-seasonal="@booking.SeasonalChargePercent.ToString(CultureInfo.InvariantCulture)"
+                                            data-discount="@booking.Discount.ToString(CultureInfo.InvariantCulture)"
+                                            data-advance="@booking.AdvancePayment.ToString(CultureInfo.InvariantCulture)">
+                                        Checkout
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Checkout">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Guest Checkout</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" id="checkoutBookingId" name="id" />
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Restaurant Bill (Auto from POS)</label>
+                            <input id="checkoutRestaurant" type="number" class="form-control" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Advance Paid</label>
+                            <input id="checkoutAdvance" type="number" class="form-control" readonly />
+                            <div class="form-text">Admin can change this from Admin Edit before checkout.</div>
+                        </div>
+
+                        @if (isAdmin)
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">Bar Bill</label>
+                                <input id="checkoutBar" name="barBill" type="number" min="0" step="0.01" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Laundry Bill</label>
+                                <input id="checkoutLaundry" name="laundryBill" type="number" min="0" step="0.01" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Seasonal Charge %</label>
+                                <input id="checkoutSeasonal" name="seasonalChargePercent" type="number" min="0" step="0.01" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Discount</label>
+                                <input id="checkoutDiscount" name="discount" type="number" min="0" step="0.01" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Payment Status</label>
+                                <select name="paymentStatus" class="form-select">
+                                    <option value="@PaymentStatuses.Pending">Pending</option>
+                                    <option value="@PaymentStatuses.PartPaid">Part Paid</option>
+                                    <option value="@PaymentStatuses.Paid" selected>Paid</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Method</label>
+                                <select name="paymentMethod" class="form-select">
+                                    <option>Cash</option>
+                                    <option>Credit Card</option>
+                                    <option>Bank Transfer</option>
+                                    <option>Online Payment</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Remarks</label>
+                                <input name="remarks" class="form-control" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">Bar Bill</label>
+                                <input id="checkoutBar" type="number" class="form-control" readonly />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Laundry Bill</label>
+                                <input id="checkoutLaundry" type="number" class="form-control" readonly />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Seasonal Charge %</label>
+                                <input id="checkoutSeasonal" type="number" class="form-control" readonly />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Discount</label>
+                                <input id="checkoutDiscount" type="number" class="form-control" readonly />
+                            </div>
+                            <div class="col-12">
+                                <div class="alert alert-warning mb-0">
+                                    Reception can complete checkout, but only Admin can change booking or invoice values.
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="alert alert-info mt-3 mb-0">
+                        Restaurant charges are added automatically when a room-charge order is marked
+                        <strong>Served</strong> in Kitchen Live. All pending room orders must be completed or cancelled before checkout.
+                        After checkout, every room in this reservation will be marked <strong>Ready</strong>.
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success" data-confirm="Save charges and checkout this guest?">
+                        Checkout Guest
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const checkoutModal = document.getElementById("checkoutModal");
+
+    checkoutModal.addEventListener("show.bs.modal", event => {
+        const button = event.relatedTarget;
+
+        document.getElementById("checkoutBookingId").value = button.dataset.id;
+        document.getElementById("checkoutRestaurant").value = button.dataset.restaurant || 0;
+        document.getElementById("checkoutBar").value = button.dataset.bar || 0;
+        document.getElementById("checkoutLaundry").value = button.dataset.laundry || 0;
+        document.getElementById("checkoutSeasonal").value = button.dataset.seasonal || 0;
+        document.getElementById("checkoutDiscount").value = button.dataset.discount || 0;
+        document.getElementById("checkoutAdvance").value = button.dataset.advance || 0;
+    });
+</script>
+}

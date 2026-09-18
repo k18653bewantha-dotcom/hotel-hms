@@ -1,0 +1,57 @@
+@page "{id:int}"
+@model HotelBookingSystem.Pages.Customers.EditModel
+@{
+    ViewData["Title"] = "Edit Customer";
+}
+
+<div class="card shadow-sm mx-auto" style="max-width:850px">
+    <div class="card-header bg-dark text-white"><h1 class="h5 mb-0">Edit Customer</h1></div>
+    <div class="card-body">
+        <form method="post">
+            <input asp-for="Customer.Id" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <label asp-for="Customer.FullName" class="form-label"></label>
+        <input asp-for="Customer.FullName" class="form-control" />
+        <span asp-validation-for="Customer.FullName" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Customer.Phone" class="form-label"></label>
+        <input asp-for="Customer.Phone" class="form-control" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Customer.PassportNo" class="form-label">Passport No</label>
+        <input asp-for="Customer.PassportNo" class="form-control" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Customer.NicNo" class="form-label">NIC No</label>
+        <input asp-for="Customer.NicNo" class="form-control" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Customer.Country" class="form-label"></label>
+        <input asp-for="Customer.Country" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Customer.Email" class="form-label"></label>
+        <input asp-for="Customer.Email" class="form-control" />
+        <span asp-validation-for="Customer.Email" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Customer.Address" class="form-label"></label>
+        <input asp-for="Customer.Address" class="form-control" />
+    </div>
+</div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary">Save Changes</button>
+                <a asp-page="Index" class="btn btn-secondary">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
